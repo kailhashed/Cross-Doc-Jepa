@@ -1,0 +1,44 @@
+# Same as pretrain_config.yaml but for 1 GPU (smaller batch to avoid OOM)
+# Run: torchrun --nproc_per_node=1 training/pretrain.py --config configs/pretrain_config_single_gpu.yaml
+
+encoder_model: "roberta-base"
+decoder_model: "facebook/bart-large-cnn"
+hidden_size: 768
+num_heads: 8
+para_layers: 2
+doc_layers: 2
+predictor_layers: 4
+srd_layers: 4
+num_summary_queries: 32
+num_dual_attn_layers: 4
+dropout: 0.1
+prediction_level: "hierarchical"
+
+ema_momentum: 0.996
+ema_base: 0.996
+ema_final: 0.999
+min_context_ratio: 0.3
+max_context_ratio: 0.7
+
+train_cluster_file: "data/pretraining/wikipedia_clusters.jsonl"
+max_docs: 8
+max_paras: 12
+max_sents_per_para: 6
+max_sent_len: 64
+
+num_steps: 100000
+batch_size: 4                          # Per-GPU (1 GPU)
+lr: 1.0e-4
+weight_decay: 0.05
+warmup_steps: 1000
+max_grad_norm: 1.0
+fp16: true
+num_workers: 8
+
+doc_loss_weight: 1.0
+para_loss_weight: 0.5
+
+output_dir: "checkpoints/pretrain"
+log_interval: 50
+save_interval: 5000
+resume_from: null

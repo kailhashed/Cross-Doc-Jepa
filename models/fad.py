@@ -394,6 +394,9 @@ class FaithfulnessAwareDecoder(nn.Module):
         try:
             encoder_hidden = self.enc_to_bart(summary_emb)
             encoder_outputs = BaseModelOutput(last_hidden_state=encoder_hidden)
+            decoder_start = getattr(
+                self.bart.config, "decoder_start_token_id", self.bart.config.eos_token_id
+            )
             ids = self.bart.generate(
                 encoder_outputs=encoder_outputs,
                 attention_mask=enc_mask,
@@ -403,6 +406,7 @@ class FaithfulnessAwareDecoder(nn.Module):
                 length_penalty=length_penalty,
                 no_repeat_ngram_size=no_repeat_ngram_size,
                 early_stopping=True,
+                decoder_start_token_id=decoder_start,
             )
         finally:
             _clear_ctx()   # Wipe _tls for this thread — another call starts fresh

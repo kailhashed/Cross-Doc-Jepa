@@ -41,7 +41,7 @@ weight_decay: 0.05
 warmup_steps: 1000
 max_grad_norm: 1.0
 fp16: true
-num_workers: 4
+num_workers: 8
 
 # Loss weights (pretraining only uses JEPA losses)
 doc_loss_weight: 1.0

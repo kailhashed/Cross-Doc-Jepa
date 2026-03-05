@@ -138,7 +138,8 @@ class CrossDocJEPA(nn.Module):
 
     @torch.no_grad()
     def generate_summary(self, batch: Dict, tokenizer,
-                          max_length: int = 256, num_beams: int = 4) -> List[str]:
+                          max_length: int = 256, num_beams: int = 4,
+                          min_length: int = 10, length_penalty: float = 2.0) -> List[str]:
         repr_d   = self.cd_jepa.get_all_document_representations(batch)
         doc_embs  = repr_d["document_embs"]
         para_embs = repr_d["paragraph_embs"]
@@ -163,5 +164,8 @@ class CrossDocJEPA(nn.Module):
             salient_sent_embs=jse_out["topk_embs"],
             salient_weights=jse_out["topk_weights"],
             tokenizer=tokenizer,
-            max_length=max_length, num_beams=num_beams,
+            max_length=max_length,
+            num_beams=num_beams,
+            min_length=min_length,
+            length_penalty=length_penalty,
         )

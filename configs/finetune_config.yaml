@@ -54,12 +54,14 @@ freeze_bart_layers: 6                  # Freeze first 6 BART decoder layers
 num_epochs: 10
 batch_size: 2                          # Per GPU (use 4 on 80GB+ A100 if OOM)
 fp16: true
-num_workers: 2
+num_workers: 8
 
 # Eval
 eval_batch_size: 2
 eval_interval: 500                     # Steps between evaluations
 eval_samples: 200                      # Validation samples per eval
+eval_min_length: 10                    # Lower than default 30 so early training doesn't force long repetition
+eval_length_penalty: 2.0
 
 # Checkpointing
 pretrain_checkpoint: "checkpoints/pretrain/pretrain_final.pt"

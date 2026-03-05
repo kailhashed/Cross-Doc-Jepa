@@ -105,7 +105,7 @@ def finetune(config):
                               num_workers=config.get("num_workers",2),
                               collate_fn=finetune_collate_fn, pin_memory=True, drop_last=True)
     val_loader   = DataLoader(val_ds, batch_size=config.get("eval_batch_size",2),
-                              shuffle=False, num_workers=2, collate_fn=finetune_collate_fn)
+                              shuffle=False, num_workers=config.get("num_workers", 8), collate_fn=finetune_collate_fn)
 
     model = CrossDocJEPA(config).to(device)
     ckpt  = config.get("pretrain_checkpoint")
@@ -178,9 +178,13 @@ def finetune(config):
             if is_main and global_step % eval_int == 0:
                 model.eval()
                 m = model.module if use_dist else model
-                metrics = evaluate_model(m, val_loader, dec_tok, device,
-                                          max_samples=config.get("eval_samples",200),
-                                          run_factcc=config.get("eval_factcc", False))
+                metrics = evaluate_model(
+                    m, val_loader, dec_tok, device,
+                    max_samples=config.get("eval_samples", 200),
+                    min_length=config.get("eval_min_length", 10),
+                    length_penalty=config.get("eval_length_penalty", 2.0),
+                    run_factcc=config.get("eval_factcc", False),
+                )
                 log.info(f"[Eval] R-1 {metrics['rouge1']:.4f} | R-2 {metrics['rouge2']:.4f} "
                          f"| R-L {metrics['rougeL']:.4f} | BertScore {metrics.get('bertscore',0.):.4f}")
                 if metrics["rouge2"] > best_r2:
@@ -192,8 +196,9 @@ def finetune(config):
 
         if is_main:
             m = model.module if use_dist else model
-            torch.save({"model": m.state_dict(), "epoch": epoch + 1},
-                       out_dir / f"epoch_{epoch+1}.pt")
+            ckpt_path = out_dir / f"epoch_{epoch+1}.pt"
+            torch.save({"model": m.state_dict(), "epoch": epoch + 1, "config": config}, ckpt_path)
+            log.info(f"Saved epoch checkpoint: {ckpt_path}")
 
     if is_main:
         log.info(f"Finetuning complete. Best R-2: {best_r2:.4f}")

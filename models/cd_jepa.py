@@ -185,6 +185,18 @@ class CrossDocumentJEPA(nn.Module):
         ctx_idx, tgt_idx = self._split(N)
         n_tgt = len(tgt_idx)
 
+        # Single-document batches: no context for JEPA; return zero JEPA loss (no architecture change)
+        if len(ctx_idx) == 0:
+            losses = {
+                "doc_loss": torch.tensor(0.0, device=device),
+                "total_jepa_loss": torch.tensor(0.0, device=device),
+            }
+            if self.prediction_level in ("para", "hierarchical"):
+                losses["para_loss"] = torch.tensor(0.0, device=device)
+            if self.prediction_level == "hierarchical":
+                losses["sent_loss"] = torch.tensor(0.0, device=device)
+            return losses
+
         ctx_embs  = ctx_doc_stack[:, ctx_idx, :]   # (B, |C|, H)
         tgt_embs  = tgt_doc_stack[:, tgt_idx, :]   # (B, |T|, H)
         ctx_mask  = torch.ones(B, len(ctx_idx), device=device)
@@ -296,6 +308,9 @@ class CrossDocumentJEPA(nn.Module):
 
     def predict_all_from_all(self, doc_embs: torch.Tensor, *_) -> torch.Tensor:
         B, N, H = doc_embs.shape
+        if N == 1:
+            # Leave-one-out undefined; return identity (no predictor call with empty context)
+            return doc_embs
         preds = []
         for t in range(N):
             ctx = doc_embs[:, [j for j in range(N) if j != t], :]

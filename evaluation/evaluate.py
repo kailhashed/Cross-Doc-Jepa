@@ -188,6 +188,8 @@ def evaluate_model(
     max_samples: int = 5000,
     max_length: int = 256,
     num_beams: int = 4,
+    min_length: int = 10,
+    length_penalty: float = 2.0,
     run_factcc: bool = True,
     run_ehr: bool = True,
 ) -> Dict[str, float]:
@@ -221,8 +223,13 @@ def evaluate_model(
         refs = tokenizer.batch_decode(label_ids, skip_special_tokens=True)
 
         try:
-            preds = model.generate_summary(batch_enc, tokenizer, max_length=max_length,
-                                            num_beams=num_beams)
+            preds = model.generate_summary(
+                batch_enc, tokenizer,
+                max_length=max_length,
+                num_beams=num_beams,
+                min_length=min_length,
+                length_penalty=length_penalty,
+            )
         except Exception as e:
             logger.warning(f"Generation failed: {e}")
             preds = [""] * len(refs)
@@ -233,6 +240,11 @@ def evaluate_model(
 
     predictions = predictions[:max_samples]
     references  = references[:max_samples]
+
+    # Log one sample so we can see what the model is generating (helps debug flat scores)
+    if predictions and references:
+        p0, r0 = predictions[0][:200], references[0][:200]
+        logger.info(f"[Eval sample] pred: {p0!r}... | ref: {r0!r}...")
 
     metrics = compute_rouge(predictions, references)
     metrics["bertscore"]     = compute_bertscore(predictions, references)
