@@ -273,6 +273,8 @@ class FaithfulnessAwareDecoder(nn.Module):
             self._patched_layer_ids.append(id(patched))
 
         self.faith_proj = nn.Linear(self.bart_hidden, encoder_hidden_size, bias=False)
+        # Project encoder (768) to BART d_model (1024) for encoder_outputs
+        self.enc_to_bart = nn.Linear(encoder_hidden_size, self.bart_hidden)
 
     # ── Inference context setup ───────────────────────────────────────────────
 
@@ -323,15 +325,14 @@ class FaithfulnessAwareDecoder(nn.Module):
         labels: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         B, K = summary_emb.shape[:2]
-        enc_mask = torch.ones(B, K, device=summary_emb.device)
 
         _set_train_ctx(summary_emb, salient_sent_embs, salient_weights, B)
         try:
+            encoder_hidden = self.enc_to_bart(summary_emb)
             outputs = self.bart(
                 decoder_input_ids=input_ids,
                 decoder_attention_mask=attention_mask,
-                encoder_outputs=(summary_emb,),
-                encoder_attention_mask=enc_mask,
+                encoder_outputs=(encoder_hidden,),
                 output_hidden_states=True,
                 return_dict=True,
             )
@@ -387,8 +388,9 @@ class FaithfulnessAwareDecoder(nn.Module):
             summary_emb, salient_sent_embs, salient_weights, num_beams
         )
         try:
+            encoder_hidden = self.enc_to_bart(summary_emb)
             ids = self.bart.generate(
-                encoder_outputs=(summary_emb,),
+                encoder_outputs=(encoder_hidden,),
                 attention_mask=enc_mask,
                 max_length=max_length,
                 min_length=min_length,

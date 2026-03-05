@@ -135,7 +135,8 @@ class JEPAGuidedSalienceEstimator(nn.Module):
         Used by SRD._build_memory() to select paragraphs by salience rather than L2 norm.
         Max-pool preserves the "best sentence in this paragraph" signal.
         """
-        masked = sentence_salience.masked_fill(~sent_valid_mask.bool(), -1e9)
+        mask_val = torch.finfo(sentence_salience.dtype).min
+        masked = sentence_salience.masked_fill(~sent_valid_mask.bool(), mask_val)
         para_sal = masked.max(dim=-1).values   # (B, N, P)
         # Replace -inf (all-padding paragraphs) with 0
         para_sal = para_sal.clamp(min=0.0)
@@ -155,7 +156,8 @@ class JEPAGuidedSalienceEstimator(nn.Module):
         emb_flat = sent_embs.view(B, N * P * S, H)
         msk_flat = valid_mask.view(B, N * P * S).float()
 
-        sc_flat  = sc_flat * msk_flat + (1.0 - msk_flat) * -1e9
+        mask_val = torch.finfo(sc_flat.dtype).min
+        sc_flat  = sc_flat * msk_flat + (1.0 - msk_flat) * mask_val
         k_eff    = min(k, int(msk_flat.sum(dim=1).max().item()))
         topk_sc, topk_idx = sc_flat.topk(k_eff, dim=1)
         topk_emb = emb_flat.gather(1, topk_idx.unsqueeze(-1).expand(-1, -1, H))

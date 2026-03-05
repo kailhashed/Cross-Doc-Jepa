@@ -64,7 +64,9 @@ class ParagraphEncoder(nn.Module):
                 sentence_mask: torch.Tensor) -> torch.Tensor:  # (B, H)
         kpm     = ~sentence_mask.bool()
         encoded = self.transformer(sentence_embs, src_key_padding_mask=kpm)
-        w       = self.pool(encoded).squeeze(-1).masked_fill(kpm, -1e9)
+        w       = self.pool(encoded).squeeze(-1)
+        mask_val = torch.finfo(w.dtype).min
+        w       = w.masked_fill(kpm, mask_val)
         w       = F.softmax(w, dim=-1)
         return self.layer_norm((encoded * w.unsqueeze(-1)).sum(1))
 
@@ -133,7 +135,9 @@ class DocumentEncoder(nn.Module):
         embs     = para_embs + self.pos_emb(pos_ids)
         kpm      = ~para_mask.bool()
         encoded  = self.intra_doc_attn(embs, src_key_padding_mask=kpm)   # (B, P, H)
-        w        = self.para_pool(encoded).squeeze(-1).masked_fill(kpm, -1e9)
+        w        = self.para_pool(encoded).squeeze(-1)
+        mask_val = torch.finfo(w.dtype).min
+        w        = w.masked_fill(kpm, mask_val)
         w        = F.softmax(w, dim=-1)
         doc_vec  = self.layer_norm((encoded * w.unsqueeze(-1)).sum(1))   # (B, H)
         return doc_vec, encoded
@@ -174,7 +178,9 @@ class DocumentEncoder(nn.Module):
             # Mean-pool the K global tokens → cluster embedding
             return self.layer_norm(encoded.mean(1))
 
-        w = self.pool(encoded).squeeze(-1).masked_fill(kpm, -1e9)
+        w = self.pool(encoded).squeeze(-1)
+        mask_val = torch.finfo(w.dtype).min
+        w = w.masked_fill(kpm, mask_val)
         w = F.softmax(w, dim=-1)
         return self.layer_norm((encoded * w.unsqueeze(-1)).sum(1))
 
@@ -207,16 +213,16 @@ class HierarchicalDocumentEncoder(nn.Module):
 
         # ── Sentence level ───────────────────────────────────────────────────
         sent_embs_flat = self.sentence_enc(
-            sentence_input_ids.view(B * P * S, L),
-            sentence_attn_mask.view(B * P * S, L),
+            sentence_input_ids.reshape(B * P * S, L),
+            sentence_attn_mask.reshape(B * P * S, L),
         )   # (B*P*S, H)
-        sent_embs = sent_embs_flat.view(B, P, S, self.hidden_size)
+        sent_embs = sent_embs_flat.reshape(B, P, S, self.hidden_size)
 
         # ── Paragraph level ──────────────────────────────────────────────────
         para_embs = self.para_enc(
-            sent_embs.view(B * P, S, self.hidden_size),
-            sentence_valid_mask.view(B * P, S),
-        ).view(B, P, self.hidden_size)   # (B, P, H)
+            sent_embs.reshape(B * P, S, self.hidden_size),
+            sentence_valid_mask.reshape(B * P, S),
+        ).reshape(B, P, self.hidden_size)   # (B, P, H)
 
         # ── Document level (intra-doc only; inter-doc handled by caller) ─────
         doc_emb, para_encoded = self.doc_enc(para_embs, paragraph_valid_mask)
