@@ -180,8 +180,7 @@ def finetune(config):
                 m = model.module if use_dist else model
                 metrics = evaluate_model(m, val_loader, dec_tok, device,
                                           max_samples=config.get("eval_samples",200),
-                                          run_factcc=config.get("eval_factcc", False),
-                                          run_qags=False)
+                                          run_factcc=config.get("eval_factcc", False))
                 log.info(f"[Eval] R-1 {metrics['rouge1']:.4f} | R-2 {metrics['rouge2']:.4f} "
                          f"| R-L {metrics['rougeL']:.4f} | BertScore {metrics.get('bertscore',0.):.4f}")
                 if metrics["rouge2"] > best_r2:

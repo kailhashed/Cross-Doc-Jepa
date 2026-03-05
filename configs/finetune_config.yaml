@@ -52,7 +52,7 @@ freeze_bart_layers: 6                  # Freeze first 6 BART decoder layers
 
 # Training
 num_epochs: 10
-batch_size: 4                          # Per GPU
+batch_size: 2                          # Per GPU (use 4 on 80GB+ A100 if OOM)
 fp16: true
 num_workers: 2
 

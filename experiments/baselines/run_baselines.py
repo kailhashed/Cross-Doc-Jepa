@@ -191,7 +191,7 @@ def run_crossdoc_jepa(config, checkpoint, clusters, references, device, max_samp
 
     from evaluation.evaluate import evaluate_model
     m = evaluate_model(model, loader, dec_tok, device,
-                        max_samples=max_samples, run_factcc=True, run_qags=False)
+                        max_samples=max_samples, run_factcc=True)
     m["model"] = "CrossDoc-JEPA (ours)"
     m["novel_2gram"] = m.pop("novel_2gram", 0.0)
     log.info(f"CrossDoc-JEPA: R-2 = {m['rouge2']:.4f}")

@@ -180,8 +180,9 @@ class PatchedBartDecoderLayer(nn.Module):
     def forward(self, hidden_states, attention_mask=None,
                 encoder_hidden_states=None, encoder_attention_mask=None,
                 layer_head_mask=None, cross_attn_layer_head_mask=None,
-                past_key_value=None, output_attentions=False, use_cache=True):
-
+                past_key_value=None, output_attentions=False, use_cache=True,
+                **kwargs):
+        # Pass through any new transformers API kwargs (e.g. past_key_values, cache_position)
         out = self.orig(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
@@ -192,6 +193,7 @@ class PatchedBartDecoderLayer(nn.Module):
             past_key_value=past_key_value,
             output_attentions=output_attentions,
             use_cache=use_cache,
+            **kwargs,
         )
 
         if not _has_ctx():
