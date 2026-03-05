@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────────────────────
+# CrossDoc-JEPA Finetuning Configuration (Stage 2)
+# Run: python training/finetune.py --config configs/finetune_config.yaml
+# ─────────────────────────────────────────────────────────────
+
+# Model architecture (must match pretrain_config)
+encoder_model: "roberta-base"
+decoder_model: "facebook/bart-large-cnn"
+hidden_size: 768
+num_heads: 8
+para_layers: 2
+doc_layers: 2
+predictor_layers: 4
+srd_layers: 4
+num_summary_queries: 32
+num_dual_attn_layers: 4
+dropout: 0.1
+prediction_level: "hierarchical"
+
+# EMA
+ema_momentum: 0.996
+ema_base: 0.996
+ema_final: 0.999
+min_context_ratio: 0.3
+max_context_ratio: 0.7
+
+# Faithfulness
+faithfulness_margin: 0.85
+salience_temperature: 1.0
+top_k_sentences: 50                    # Top-k salient sentences passed to decoder
+
+# Data
+dataset: "multi_news"                  # "multi_news" or "wcep"
+max_docs: 5                            # Multi-News avg = 2.7, WCEP avg = 9.9
+max_paras: 12
+max_sents_per_para: 6
+max_sent_len: 64
+max_summary_len: 256
+
+# Loss weights — the L_total = λ₁·CE + λ₂·JEPA + λ₃·Sal + λ₄·Faith
+lambda_ce: 1.0
+lambda_jepa: 0.5
+lambda_sal: 0.3
+lambda_faith: 0.2
+
+# Optimizer
+lr: 3.0e-5
+weight_decay: 0.01
+warmup_steps: 500
+max_grad_norm: 1.0
+freeze_bart_layers: 6                  # Freeze first 6 BART decoder layers
+
+# Training
+num_epochs: 10
+batch_size: 4                          # Per GPU
+fp16: true
+num_workers: 2
+
+# Eval
+eval_batch_size: 2
+eval_interval: 500                     # Steps between evaluations
+eval_samples: 200                      # Validation samples per eval
+
+# Checkpointing
+pretrain_checkpoint: "checkpoints/pretrain/pretrain_final.pt"
+output_dir: "checkpoints/finetune_multinews"
+log_interval: 20
+gate_log_interval: 100            # Steps between gate_alpha log entries (for convergence plot)
+eval_factcc: false                # Set true to run FactCC during validation (slower)

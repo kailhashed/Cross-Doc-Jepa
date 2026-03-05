@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────
+# CrossDoc-JEPA Pretraining Configuration (Stage 1)
+# Run: torchrun --nproc_per_node=4 training/pretrain.py --config configs/pretrain_config.yaml
+# ─────────────────────────────────────────────────────────────
+
+# Model architecture
+encoder_model: "roberta-base"          # HDE backbone (RoBERTa-base, 125M params)
+decoder_model: "facebook/bart-large-cnn"  # Not used in pretraining — for finetune only
+hidden_size: 768
+num_heads: 8
+para_layers: 2                         # Paragraph encoder transformer layers
+doc_layers: 2                          # Document encoder transformer layers
+predictor_layers: 4                    # CD-JEPA predictor transformer layers
+srd_layers: 4                          # Summary distiller layers (unused in pretrain)
+num_summary_queries: 32                # K summary query vectors
+num_dual_attn_layers: 4                # FAD dual cross-attn layers (unused in pretrain)
+dropout: 0.1
+prediction_level: "hierarchical"       # "doc", "para", or "hierarchical"
+
+# EMA momentum
+ema_momentum: 0.996
+ema_base: 0.996
+ema_final: 0.999                       # Cosine annealing target
+
+# Document masking
+min_context_ratio: 0.3                 # Minimum fraction of docs to use as context
+max_context_ratio: 0.7                 # Maximum fraction of docs to use as context
+
+# Data
+train_cluster_file: "data/pretraining/wikipedia_clusters.jsonl"
+max_docs: 8                            # Max documents per cluster
+max_paras: 12                          # Max paragraphs per document
+max_sents_per_para: 6                  # Max sentences per paragraph
+max_sent_len: 64                       # Max tokens per sentence
+
+# Training
+num_steps: 100000
+batch_size: 16                         # Per-GPU batch size (×4 GPUs = 64 effective)
+lr: 1.0e-4
+weight_decay: 0.05
+warmup_steps: 1000
+max_grad_norm: 1.0
+fp16: true
+num_workers: 4
+
+# Loss weights (pretraining only uses JEPA losses)
+doc_loss_weight: 1.0
+para_loss_weight: 0.5
+
+# Logging & saving
+output_dir: "checkpoints/pretrain"
+log_interval: 50
+save_interval: 5000
+resume_from: null                      # Path to resume from (or null)

@@ -1,0 +1,26 @@
+# Core
+torch>=2.1.0
+transformers>=4.38.0
+datasets>=2.17.0
+accelerate>=0.27.0
+sentencepiece>=0.1.99
+
+# Evaluation
+rouge-score>=0.1.2
+bert-score>=0.3.13
+scipy>=1.12.0
+
+# Sentence splitting (deterministic)
+nltk>=3.8.0
+
+# QAGS approximation (optional but recommended for EMNLP submission)
+spacy>=3.7.0
+# python -m spacy download en_core_web_sm
+
+# Visualization (gate_alpha convergence plot)
+matplotlib>=3.8.0
+
+# Training utilities
+numpy>=1.26.0
+pyyaml>=6.0
+tqdm>=4.66.0
