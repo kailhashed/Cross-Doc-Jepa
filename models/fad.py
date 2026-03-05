@@ -41,6 +41,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BartForConditionalGeneration
+from transformers.modeling_outputs import BaseModelOutput
 from transformers.models.bart.modeling_bart import BartDecoderLayer
 from typing import Dict, List, Optional, Tuple
 import threading
@@ -331,10 +332,11 @@ class FaithfulnessAwareDecoder(nn.Module):
         _set_train_ctx(summary_emb, salient_sent_embs, salient_weights, B)
         try:
             encoder_hidden = self.enc_to_bart(summary_emb)
+            encoder_outputs = BaseModelOutput(last_hidden_state=encoder_hidden)
             outputs = self.bart(
                 decoder_input_ids=input_ids,
                 decoder_attention_mask=attention_mask,
-                encoder_outputs=(encoder_hidden,),
+                encoder_outputs=encoder_outputs,
                 output_hidden_states=True,
                 return_dict=True,
             )
@@ -391,8 +393,9 @@ class FaithfulnessAwareDecoder(nn.Module):
         )
         try:
             encoder_hidden = self.enc_to_bart(summary_emb)
+            encoder_outputs = BaseModelOutput(last_hidden_state=encoder_hidden)
             ids = self.bart.generate(
-                encoder_outputs=(encoder_hidden,),
+                encoder_outputs=encoder_outputs,
                 attention_mask=enc_mask,
                 max_length=max_length,
                 min_length=min_length,
